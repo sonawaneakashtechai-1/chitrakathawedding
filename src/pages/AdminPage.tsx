@@ -508,69 +508,33 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigatePage, onSettings
       const cleanName = `hero-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
       let uploadedUrl = '';
 
-      // Step 1: Fast upload to local server (takes < 1 second, works for any file size)
-      try {
-        const xhr = new XMLHttpRequest();
-        const localPromise = new Promise<{ success: boolean; url?: string }>((resolve) => {
-          xhr.upload.onprogress = (ev) => {
-            if (ev.lengthComputable) {
-              const p = Math.round((ev.loaded / ev.total) * 90);
-              setUploadProgress(Math.max(5, p));
-            }
-          };
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                resolve(JSON.parse(xhr.responseText));
-              } catch {
-                resolve({ success: false });
-              }
-            } else {
-              resolve({ success: false });
-            }
-          };
-          xhr.onerror = () => resolve({ success: false });
-        });
+      // Direct Cloud Upload to Supabase Storage for permanent global playback
+      if (isSupabaseConfigured && supabase) {
+        setUploadProgress(20);
+        const filePath = `hero/${cleanName}`;
+        const { error: uploadError } = await supabase.storage
+          .from('hero-videos')
+          .upload(filePath, file, {
+            cacheControl: '31536000',
+            upsert: true,
+            contentType: file.type || 'video/mp4',
+          });
 
-        xhr.open('POST', `/api/local-video-upload?filename=${encodeURIComponent(cleanName)}`);
-        xhr.send(file);
-
-        const localResult = await localPromise;
-        if (localResult.success && localResult.url) {
-          uploadedUrl = localResult.url;
+        if (uploadError) {
+          throw new Error(`Supabase upload failed: ${uploadError.message}`);
         }
-      } catch (localErr) {
-        console.warn('Local upload notice:', localErr);
-      }
 
-      // Step 2: If under 50MB and Supabase is configured, also sync to Supabase Storage
-      if (isSupabaseConfigured && supabase && file.size <= 50 * 1024 * 1024) {
-        try {
-          const filePath = `hero/${cleanName}`;
-          const { error: uploadError } = await supabase.storage
-            .from('hero-videos')
-            .upload(filePath, file, {
-              cacheControl: '3600',
-              upsert: true,
-              contentType: file.type || 'video/mp4',
-            });
+        const { data: publicUrlData } = supabase.storage
+          .from('hero-videos')
+          .getPublicUrl(filePath);
 
-          if (!uploadError) {
-            const { data: publicUrlData } = supabase.storage
-              .from('hero-videos')
-              .getPublicUrl(filePath);
-            if (publicUrlData?.publicUrl) {
-              uploadedUrl = publicUrlData.publicUrl;
-            }
-          }
-        } catch (cloudErr) {
-          console.warn('Cloud sync notice:', cloudErr);
+        if (publicUrlData?.publicUrl) {
+          uploadedUrl = publicUrlData.publicUrl;
         }
       }
 
       if (!uploadedUrl) {
-        // Fallback to object URL if all else fails
-        uploadedUrl = URL.createObjectURL(file);
+        throw new Error('Supabase Storage is not configured or failed to return a public URL.');
       }
 
       setUploadProgress(100);
@@ -1298,7 +1262,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigatePage, onSettings
           const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
           const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
           const catSlug = targetCategory.toLowerCase().replace(/[^a-z0-9]/g, '-');
-          const filePath = `films/${catSlug}/${Date.now()}-${i}-${cleanName}`;
+          const filePath = `wedding-videos/${catSlug}-${Date.now()}-${i}-${cleanName}`;
           const filmId = typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
             : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -1309,60 +1273,33 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigatePage, onSettings
           // 1. Extract high-quality frame snapshot from the actual video file (< 200ms)
           const autoThumb = (await generateVideoThumbnail(file)) || getCategoryFallbackImage(targetCategory);
 
-          let finalVideoUrl = URL.createObjectURL(file); // last-resort fallback
+          let finalVideoUrl = '';
 
-          // 3. Upload to local server with real XHR progress tracking
-          try {
-            const localUrl = await new Promise<string | null>((resolve) => {
-              const xhr = new XMLHttpRequest();
-
-              xhr.upload.onprogress = (ev) => {
-                if (ev.lengthComputable) {
-                  const filePercent = Math.round((ev.loaded / ev.total) * 100);
-                  setBatchVideoProgress({
-                    current: i + 1,
-                    total,
-                    percent: Math.round(((i + filePercent / 100) / total) * 100),
-                    statusText: `[${i + 1}/${total}] 🚀 "${file.name}" — ${filePercent}% (${(ev.loaded / 1024 / 1024).toFixed(0)} MB / ${fileSizeMB} MB)`,
-                  });
-                }
-              };
-
-              xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                  try {
-                    const res = JSON.parse(xhr.responseText);
-                    resolve(res?.url || null);
-                  } catch { resolve(null); }
-                } else {
-                  resolve(null);
-                }
-              };
-              xhr.onerror = () => resolve(null);
-
-              xhr.open('POST', `/api/local-video-upload?filename=${encodeURIComponent(cleanName)}`);
-              xhr.send(file);
+          // Upload directly to Supabase Storage for permanent global playback
+          if (isSupabaseConfigured && supabase) {
+            setBatchVideoProgress({
+              current: i + 1,
+              total,
+              percent: Math.round(((i + 0.3) / total) * 100),
+              statusText: `[${i + 1}/${total}] ☁️ Uploading "${file.name}" (${fileSizeMB} MB) to Supabase Storage...`,
             });
 
-            if (localUrl) finalVideoUrl = localUrl;
-          } catch (localErr) {
-            console.warn('Local upload notice:', localErr);
+            const { error: uploadError } = await supabase.storage
+              .from('films')
+              .upload(filePath, file, { cacheControl: '31536000', upsert: true, contentType: file.type || 'video/mp4' });
+
+            if (uploadError) {
+              throw new Error(`Upload failed for "${file.name}": ${uploadError.message}`);
+            }
+
+            const { data: publicUrlData } = supabase.storage.from('films').getPublicUrl(filePath);
+            if (publicUrlData?.publicUrl) {
+              finalVideoUrl = publicUrlData.publicUrl;
+            }
           }
 
-          // 4. Cloud sync for small files only
-          if (isSupabaseConfigured && supabase && file.size <= 50 * 1024 * 1024) {
-            try {
-              const { error: uploadError } = await supabase.storage
-                .from('films')
-                .upload(filePath, file, { cacheControl: '31536000', upsert: true, contentType: file.type || 'video/mp4' });
-
-              if (!uploadError) {
-                const { data: publicUrlData } = supabase.storage.from('films').getPublicUrl(filePath);
-                if (publicUrlData?.publicUrl) finalVideoUrl = publicUrlData.publicUrl;
-              }
-            } catch (cloudErr) {
-              console.warn('Cloud upload error:', cloudErr);
-            }
+          if (!finalVideoUrl) {
+            throw new Error(`Failed to get permanent public URL for "${file.name}". Please check your Supabase Storage configuration.`);
           }
 
           const record: Film = {
