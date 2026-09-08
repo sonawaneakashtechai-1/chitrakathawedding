@@ -37,10 +37,7 @@ import {
   generateVideoThumbnail,
   matchesFilmCategory,
 } from '../lib/utils';
-
-
-
-
+import chitrakathaLogo from '../assets/chitrakatha-logo.png';
 import { broadcastRealtimeChange, subscribeToRealtimeChanges } from '../lib/realtimeSync';
 import {
   LayoutDashboard,
@@ -1585,7 +1582,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigatePage, onSettings
           <div className="text-center space-y-3">
             <div className="flex justify-center">
               <img
-                src="/images/chitrakatha-logo.png"
+                src={chitrakathaLogo}
                 alt="चित्रकथा Chitrakatha by Hemant"
                 className="h-12 w-auto object-contain brightness-100 contrast-125 mx-auto"
               />
@@ -1728,7 +1725,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigatePage, onSettings
             {/* Top Brand Block */}
             <div className="px-2 py-2 flex items-center gap-3">
               <img
-                src="/images/chitrakatha-logo.png"
+                src={chitrakathaLogo}
                 alt="चित्रकथा Chitrakatha"
                 className="h-8 w-auto object-contain brightness-100"
               />

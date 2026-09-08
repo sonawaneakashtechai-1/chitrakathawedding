@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin } from 'lucide-react';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 import { scrollToSection, createWhatsAppLink } from '../lib/utils';
 import { SiteSettings } from '../types';
+import chitrakathaLogo from '../assets/chitrakatha-logo.png';
 
 interface FooterProps {
   onNavigatePage: (page: 'home' | 'admin' | 'faq' | 'contact') => void;
@@ -49,7 +50,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigatePage, settings }) => {
               {/* High-Resolution Marathi Calligraphy Logo */}
               <div className="flex items-center">
                 <img
-                  src="/images/chitrakatha-logo.png"
+                  src={chitrakathaLogo}
                   alt="चित्रकथा Chitrakatha by Hemant"
                   className="h-9 sm:h-11 w-auto object-contain brightness-100 contrast-125"
                 />

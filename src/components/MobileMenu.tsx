@@ -2,6 +2,7 @@ import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { X, Phone, Mail, MapPin } from 'lucide-react';
 import { scrollToSection } from '../lib/utils';
+import chitrakathaLogo from '../assets/chitrakatha-logo.png';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -55,7 +56,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
       <div className="flex items-center justify-between border-b border-neutral-800 pb-5">
         <div className="flex items-center gap-3">
           <img
-            src="/images/chitrakatha-logo.png"
+            src={chitrakathaLogo}
             alt="चित्रकथा Chitrakatha by Hemant"
             className="h-8 w-auto object-contain brightness-100"
           />

@@ -3,6 +3,7 @@ import { Phone, Shield, Calendar, Menu } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { scrollToSection, createWhatsAppLink } from '../lib/utils';
 import { SiteSettings } from '../types';
+import chitrakathaLogo from '../assets/chitrakatha-logo.png';
 
 interface NavbarProps {
   onOpenMobileMenu: () => void;
@@ -96,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Marathi Logo PNG */}
           <div className="flex items-center">
             <img
-              src="/images/chitrakatha-logo.png"
+              src={chitrakathaLogo}
               alt="चित्रकथा Chitrakatha by Hemant"
               className="h-8 sm:h-10 w-auto object-contain brightness-100 contrast-125 transition-transform group-hover:scale-105"
             />
